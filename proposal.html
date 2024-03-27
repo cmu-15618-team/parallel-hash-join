@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>In-Memory Parallel Hash Join: To Partition or Not To Partition</title>
+</head>
+
+<body>
+  <h1 style="text-align:center;">In-Memory Parallel Hash Join: To Partition or Not To Partition</h1>
+  <p style="text-align:center;">Authors: Ye Yuan, Zhidong Guo</p>
+
+  <h2>Summary</h2>
+  <p>We are going to implement two variants of in-memory parallel hash join to examine the effect of CPU cache hit rate,
+    synchronization cost, and computation cost on performance.</p>
+
+  <h2>URL</h2>
+  <p><a
+      href="https://github.com/cmu-15618-team/parallel-hash-join/blob/main/report/project-proposal.md">https://github.com/cmu-15618-team/parallel-hash-join/blob/main/report/project-proposal.md</a>
+  </p>
+
+  <h2>Background</h2>
+  <p>Join operation is arguably the most important operation in relational DBMS. It offers the ability to combine two or
+    more relations (tables) together so that the users can organize their data in multiple relations which more
+    accurately reflects the data model in reality, eliminates duplicated data, ensures consistency, and so forth. It is
+    also one of the most crucial operations in terms of performance because join appears in virtually every SQL query,
+    and a bad implementation of join can be devastatingly slow. Among various join algorithms, hash join has been one of
+    the most well-studied and widely-adopted algorithms due to its conceptual simplicity and its linear time complexity
+    with respect to the number of pages in both relations (in a disk-oriented context).</p>
+  <p>For readers not coming from a database system world, a hash join typically works in two phase: the build phase and
+    the probe phase. In the build phase, a hash function is applied to the join key of every tuple in the left (inner)
+    table, mapping them into hash buckets based on the hash values. In the probe phase, the algorithm iterates through
+    the right (outer) table, applying the same hash function to its tuples. It uses the hash value to locate the hash
+    bucket storing tuples from the left table with the same hash value, and hence potentially the same join key. For
+    every matching tuple from both relations, an output tuple is produced. These two stages are illustrated in the below
+    figure.</p>
+  <img src="figs/hash-join.png" alt="hash-join" style="display:block; margin-left:auto; margin-right:auto;">
+
+  <h2>Challenge</h2>
+  <p>The first challenge is implementing hash joins efficiently. More specifically,</p>
+  <ul>
+    <li>For the partitioned variant, each partition will be written to concurrently during the partition phase prior to
+      the building phase. We cannot partition the tuples directly into the hash table, because the hash table needs to
+      be sized based on the number of tuples in that partition, otherwise either the collision rate could be too high or
+      it wastes a lot of memory. So we need to find a concurrent or lock-free buffer for the partition.</li>
+    <li>For both variants, the hash table's implementation is also crucial.</li>
+    <ul>
+      <li>For the shared variant, we need to have one lock per bucket. Since there can be millions of buckets, and each
+        bucket may only contain a few tuples, using pthread mutex is prohibitively expensive in terms of memory
+        overhead.</li>
+      <li>We also need a data structure that is quick to traverse. The fastest variant is surely `Vec`, but under high
+        data skew, vector resize may invalidate cache multiple times, which defeats the purpose of partitioning.</li>
+    </ul>
+  </ul>
+  <p>The second challenge is designing the workload that reasonably reflects real-world workload and can simulate
+    different data skewness.</p>
+
+  <h2>Resources</h2>
+  <p>For now, we plan to use GHC machines to do the evaluation. In terms of software, we plan to build the system from
+    scratch using Rust, as modifying existing systems would require too much work that is irrelevant to our topic. We will
+    refer to <a href="https://15721.courses.cs.cmu.edu/spring2024/papers/09-hashjoins/p37-blanas.pdf">this paper</a> for
+    implementation and evaluation guidelines.</p>
+  
+  <h2>Goals and Deliverables</h2>
+  <h3>Plan to Achieve</h3>
+  <ul>
+    <li>Implement sequential hash join as a baseline.</li>
+    <li>Implementations of two variants of hash joins. There can be multiple implementations of the same variant,
+      depending on what data structure we use.</li>
+    <li>Performance evaluation and analysis
+      <ul>
+        <li>Design workloads that reflect real-world workloads and have different skewness.</li>
+        <li>Evaluate hash join performance by stage (partition, build, probe) using different data structures, compare it
+          with performance counters, see how important a role cache plays. We will use graphs and tables to demonstrate
+          the results.</li>
+        <li>Explore the effect of different partition sizes (what happens if partition size exceed cache size?) and hash
+          table bucket sizes (affects synchronization and computation cost) on performance. We will use graphs and tables
+          to demonstrate the results.</li>
+        <li>Reach a conclusion on the deciding factors of performance for in-memory hash join, if there is any.</li>
+      </ul>
+    </li>
+  </ul>
+  <p>The final program should be an efficient implementation of hash join that is supposed to be much faster than
+    sequential implementation.</p>
+  <h3>Hope to Achieve</h3>
+  <p>Time permitting, we will implement other variants of hash join, such as independent-partitioned hash join, and radix
+    hash join.</p>
+  
+  <h2>Choice of Platform</h2>
+  <p>We choose GHC cluster because it has 16GB of memory and 12 MB of L3 cache, which should be large enough for our
+    testing purposes.</p>
+  
+  <h2>Schedule</h2>
+  <table border="1">
+    <tr>
+      <th>End Date</th>
+      <th>Task</th>
+    </tr>
+    <tr>
+      <td>4-8</td>
+      <td>Implement infrastructure such as input/output, hash table, partition buffer, and sequential hash join</td>
+    </tr>
+    <tr>
+      <td>4-16</td>
+      <td>Implement the first variant of hash join</td>
+    </tr>
+    <tr>
+      <td>4-24</td>
+      <td>Implement the second variant of hash join</td>
+    </tr>
+    <tr>
+      <td>4-30</td>
+      <td>Design workload and perform evaluations</td>
+    </tr>
+    <tr>
+      <td>5-5</td>
+      <td>Report writing</td>
+    </tr>
+  </table>
+  
+  <h2>References</h2>
+  <ol>
+    <li><a
+        href="https://15445.courses.cs.cmu.edu/spring2024/slides/11-joins.pdf">https://15445.courses.cs.cmu.edu/spring2024/slides/11-joins.pdf</a>
+    </li>
+    <li><a
+        href="https://15721.courses.cs.cmu.edu/spring2024/papers/09-hashjoins/p37-blanas.pdf">https://15721.courses.cs.cmu.edu/spring2024/papers/09-hashjoins/p37-blanas.pdf</a>
+    </li>
+  </ol>
+</body>
+
+</html>
