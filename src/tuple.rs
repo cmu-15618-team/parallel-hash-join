@@ -23,7 +23,7 @@ impl Tuple {
     }
 }
 
-type DataChunk = Vec<Tuple>;
+pub type DataChunk = Vec<Tuple>;
 
 pub struct TupleGenerator {
     inner_tuple_num: u64,

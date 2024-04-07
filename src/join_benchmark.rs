@@ -1,3 +1,5 @@
+pub mod sequential;
+
 use std::hint::black_box;
 
 fn time_phase(name: &str, f: impl Fn()) {
