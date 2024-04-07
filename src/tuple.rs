@@ -75,7 +75,7 @@ impl TupleGenerator {
 
     /// The inner table's key is an incremental sequence starting from 0.
     fn gen_inner_table(&self) -> Vec<Vec<Tuple>> {
-        self.gen_table(self.inner_batch_num, |i| Tuple::new(i as u64))
+        self.gen_table(self.inner_batch_num, Tuple::new)
     }
 
     fn gen_outer_table(&self, gen_fn: impl FnMut(u64) -> Tuple) -> Vec<DataChunk> {
