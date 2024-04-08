@@ -2,6 +2,8 @@ use crate::tuple::{DataChunk, Tuple};
 
 use super::{hash_table::sequential::SequentialHashTable, HashJoinBenchmark};
 
+/// Sequential hash join builds a single hash table and probe it sequentially.
+/// It's meant to provide a baseline and reference implementation.
 pub struct SequentialHashJoin {
     inner: Vec<DataChunk>,
     outer: Vec<DataChunk>,
