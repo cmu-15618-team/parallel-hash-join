@@ -3,23 +3,25 @@ use rand::{distributions::Distribution, Rng};
 const LOW_SKEW_ZIPF_ALPHA: f64 = 1.05;
 const HIGH_SKEW_ZIPF_ALPHA: f64 = 1.25;
 
+pub type Key = u64;
+
 #[derive(Debug, Clone)]
 #[repr(align(16))]
 pub struct Tuple {
-    key: u64,
+    key: Key,
 }
 
 impl Tuple {
-    pub fn new(key: u64) -> Tuple {
+    pub fn new(key: Key) -> Tuple {
         Tuple { key }
     }
 
-    pub fn key(&self) -> u64 {
+    pub fn key(&self) -> Key {
         self.key
     }
 
-    pub fn key_match(&self, other: &Tuple) -> bool {
-        self.key == other.key
+    pub fn key_match(&self, key: Key) -> bool {
+        self.key == key
     }
 }
 

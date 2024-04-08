@@ -1,4 +1,10 @@
 use clap::Parser;
+use parallel_hash_join::{
+    join_benchmark::{sequential::SequentialHashJoin, HashJoinBenchmark},
+    tuple::TupleGenerator,
+};
+
+const BATCH_SIZE: u64 = 1_000;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -22,4 +28,16 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+
+    let tuple_gen = TupleGenerator::new(
+        args.inner_tuple_num as u64,
+        args.outer_ratio as u64,
+        BATCH_SIZE,
+    );
+
+    {
+        let (inner, outer) = tuple_gen.gen_uniform();
+        let mut join = SequentialHashJoin::new(args.bucket_num, inner, outer);
+        join.run();
+    }
 }
