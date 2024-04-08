@@ -26,7 +26,7 @@ impl HashJoinBenchmark for SequentialHashJoin {
     fn build(&mut self) {
         for chunk in std::mem::take(&mut self.inner) {
             for tuple in chunk {
-                self.hash_table.insert(tuple.key(), tuple);
+                self.hash_table.insert(tuple);
             }
         }
     }
@@ -36,9 +36,7 @@ impl HashJoinBenchmark for SequentialHashJoin {
             for tuple in chunk.iter() {
                 self.hash_table
                     .get_matching_tuples(tuple.key())
-                    .for_each(|t| {
-                        Self::produce_tuple(t);
-                    });
+                    .inspect(|t| Self::produce_tuple(t));
             }
         }
     }

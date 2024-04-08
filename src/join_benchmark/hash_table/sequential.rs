@@ -23,13 +23,34 @@ where
         }
     }
 
-    pub fn insert(&mut self, key: Key, tuple: Tuple) {
-        let bucket = &mut self.buckets[bucket_hash(key) as usize % self.bucket_num];
+    pub fn insert(&mut self, tuple: Tuple) {
+        let bucket = &mut self.buckets[bucket_hash(tuple.key()) as usize % self.bucket_num];
         bucket.push(tuple);
     }
 
-    pub fn get_matching_tuples(&self, key: Key) -> impl Iterator<Item = &Tuple> {
-        let bucket = &self.buckets[key as usize % self.buckets.len()];
-        bucket.iter().filter(move |t| t.key_match(key))
+    pub fn get_matching_tuples(&self, key: Key) -> Option<&Tuple> {
+        let bucket = &self.buckets[bucket_hash(key) as usize % self.buckets.len()];
+        bucket.iter().find(move |t| t.key_match(key))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sequential_hash_table() {
+        let mut hash_table = SequentialHashTable::<Vec<Tuple>>::new(10);
+        let tuple = Tuple::new(1);
+        hash_table.insert(tuple);
+
+        assert_eq!(hash_table.get_matching_tuples(1), Some(&tuple));
+
+        assert_eq!(hash_table.get_matching_tuples(2), None);
+
+        let tuple = Tuple::new(2);
+        hash_table.insert(tuple);
+
+        assert_eq!(hash_table.get_matching_tuples(2), Some(&tuple));
     }
 }

@@ -5,7 +5,7 @@ const HIGH_SKEW_ZIPF_ALPHA: f64 = 1.25;
 
 pub type Key = u64;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(align(16))]
 pub struct Tuple {
     key: Key,

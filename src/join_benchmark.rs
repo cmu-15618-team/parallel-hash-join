@@ -30,10 +30,17 @@ pub trait HashJoinBenchmark {
 }
 
 /// Hash a key to bucket index in the hash table.
+///
+/// While its possible to use the key directly as the hash value, we still hash
+/// the key for two reasons:
+///
+/// 1. The key may not always be u64 in real life.
+/// 2. The overhead of hash function is significant.
 pub fn bucket_hash(key: Key) -> u64 {
     xxhash_rust::xxh3::xxh3_64_with_seed(&key.to_le_bytes(), 821)
 }
 
+/// Hash a key to partition index.
 pub fn partition_hash(key: Key) -> u64 {
     xxhash_rust::xxh3::xxh3_64_with_seed(&key.to_le_bytes(), 804)
 }
