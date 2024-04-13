@@ -22,7 +22,7 @@ struct Args {
     partition_num: usize,
 
     /// Total number of buckets in the hash table(s)
-    #[arg(short, long, default_value_t = 1_000_000)]
+    #[arg(short, long, default_value_t = 1_048_576)]
     bucket_num: usize,
 }
 

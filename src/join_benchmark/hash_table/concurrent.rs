@@ -5,39 +5,41 @@ use crate::{
 
 use anyhow::{anyhow, Result};
 
-pub struct SequentialHashTable<B: HashBucket> {
-    buckets: Vec<B>,
+pub struct ConcurrentHashMap<B: HashBucket> {
+    buckets: Vec<parking_lot::Mutex<B>>,
     bucket_num: usize,
 }
 
-impl<B: HashBucket> SequentialHashTable<B>
-where
-    B: HashBucket,
-{
-    pub fn new(bucket_num: usize) -> Result<SequentialHashTable<B>> {
+impl<B: HashBucket> ConcurrentHashMap<B> {
+    pub fn new(bucket_num: usize) -> Result<ConcurrentHashMap<B>> {
         // Bucket number must be a power of 2 so modding can be optimized to bitwise AND.
         if !bucket_num.is_power_of_two() {
             return Err(anyhow!("Bucket number must be a power of 2"));
         }
-
         let mut buckets = Vec::with_capacity(bucket_num);
         for _ in 0..bucket_num {
-            buckets.push(B::default());
+            buckets.push(parking_lot::Mutex::new(B::default()));
         }
-        Ok(SequentialHashTable {
+        Ok(ConcurrentHashMap {
             buckets,
             bucket_num,
         })
     }
 
-    pub fn insert(&mut self, tuple: Tuple) {
-        let bucket = &mut self.buckets[bucket_hash(tuple.key()) as usize & (self.bucket_num - 1)];
+    pub fn insert(&self, tuple: Tuple) {
+        let bucket = &self.buckets[bucket_hash(tuple.key()) as usize & (self.bucket_num - 1)];
+        let mut bucket = bucket.lock();
         bucket.push(tuple);
     }
 
     pub fn get_matching_tuples(&self, key: Key) -> Option<Tuple> {
         let bucket = &self.buckets[bucket_hash(key) as usize & (self.bucket_num - 1)];
-        bucket.iter().find(move |t| t.key_match(key)).cloned()
+        let bucket = unsafe { bucket.make_guard_unchecked() }
+            .iter()
+            .find(move |t| t.key_match(key))
+            .cloned();
+        let tuple = bucket.iter().find(move |t| t.key_match(key)).cloned();
+        tuple
     }
 }
 
@@ -46,8 +48,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sequential_hash_table() {
-        let mut hash_table = SequentialHashTable::<Vec<Tuple>>::new(16).unwrap();
+    fn test_concurrent_hash_table() {
+        let hash_table = ConcurrentHashMap::<Vec<Tuple>>::new(16).unwrap();
         let tuple = Tuple::new(1);
         hash_table.insert(tuple.clone());
 
