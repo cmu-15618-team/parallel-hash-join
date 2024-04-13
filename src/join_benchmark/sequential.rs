@@ -15,7 +15,7 @@ impl SequentialHashJoin {
         Self {
             inner,
             outer,
-            hash_table: SequentialHashTable::new(bucket_num),
+            hash_table: SequentialHashTable::new(bucket_num).unwrap(),
         }
     }
 }
