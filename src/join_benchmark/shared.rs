@@ -3,7 +3,8 @@ use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterato
 use super::{hash_table::concurrent::ConcurrentHashTable, HashJoinBenchmark};
 use crate::tuple::{DataChunk, Tuple};
 
-/// Sequential hash join builds a single shared hash table and probe it concurrently.
+/// All threads build a single shared hash table and probe it concurrently.
+/// Use dynamic scheduling.
 pub struct SharedDynamicHashJoin {
     inner: Vec<DataChunk>,
     outer: Vec<DataChunk>,
@@ -42,7 +43,8 @@ impl HashJoinBenchmark for SharedDynamicHashJoin {
     }
 }
 
-/// Sequential hash join builds a single shared hash table and probe it concurrently.
+/// All threads build a single shared hash table and probe it concurrently.
+/// Use static scheduling.
 pub struct SharedStaticHashJoin {
     inner: Vec<DataChunk>,
     outer: Vec<DataChunk>,
