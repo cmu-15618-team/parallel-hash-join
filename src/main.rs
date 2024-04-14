@@ -20,7 +20,7 @@ struct Args {
     outer_ratio: usize,
 
     /// Number of tuples in each batch.
-    #[arg(short, long, default_value_t = 16_000_000)]
+    #[arg(long, default_value_t = 1_00_000)]
     batch_size: usize,
 
     /// Number of partitions. Default value calculated from GHC L3 cache size of 10MB.
@@ -52,21 +52,50 @@ fn main() {
         .build_global()
         .unwrap();
 
-    {
-        let (inner, outer) = tuple_gen.gen_uniform();
-        let mut join = SequentialHashJoin::new(args.bucket_num, inner, outer);
-        join.run();
+    macro_rules! run {
+        ($name:expr, $workload_fn:ident, $benchmark:ident) => {
+            let (inner, outer) = tuple_gen.$workload_fn();
+            let mut join = $benchmark::new(args.bucket_num, inner, outer);
+            println!("Running {}", $name);
+            join.run();
+            println!();
+        };
     }
 
-    {
-        let (inner, outer) = tuple_gen.gen_high_skew();
-        let mut join = SharedDynamicHashJoin::new(args.bucket_num, inner, outer);
-        join.run();
-    }
-
-    {
-        let (inner, outer) = tuple_gen.gen_high_skew();
-        let mut join = SharedStaticHashJoin::new(args.bucket_num, inner, outer);
-        join.run();
-    }
+    // Uniform workload.
+    run!("Uniform + Sequential", gen_uniform, SequentialHashJoin);
+    run!(
+        "Uniform + Shared + Dynamic",
+        gen_uniform,
+        SharedDynamicHashJoin
+    );
+    run!(
+        "Uniform + Shared + Static",
+        gen_uniform,
+        SharedStaticHashJoin
+    );
+    // Low skew workload.
+    run!("Low Skew + Sequential", gen_low_skew, SequentialHashJoin);
+    run!(
+        "Low Skew + Shared + Dynamic",
+        gen_low_skew,
+        SharedDynamicHashJoin
+    );
+    run!(
+        "Low Skew + Shared + Static",
+        gen_low_skew,
+        SharedStaticHashJoin
+    );
+    // High skew workload.
+    run!("High Skew + Sequential", gen_high_skew, SequentialHashJoin);
+    run!(
+        "High Skew + Shared + Dynamic",
+        gen_high_skew,
+        SharedDynamicHashJoin
+    );
+    run!(
+        "High Skew + Shared + Static",
+        gen_high_skew,
+        SharedStaticHashJoin
+    );
 }
