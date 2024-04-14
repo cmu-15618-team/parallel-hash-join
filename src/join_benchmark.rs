@@ -1,6 +1,7 @@
 mod hash_bucket;
 mod hash_table;
 pub mod sequential;
+pub mod shared;
 
 use crate::tuple::{Key, Tuple};
 

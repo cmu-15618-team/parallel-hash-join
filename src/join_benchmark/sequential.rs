@@ -36,7 +36,7 @@ impl HashJoinBenchmark for SequentialHashJoin {
             for tuple in chunk.iter() {
                 self.hash_table
                     .get_matching_tuples(tuple.key())
-                    .inspect(|t| Self::produce_tuple(t));
+                    .inspect(Self::produce_tuple);
             }
         }
     }

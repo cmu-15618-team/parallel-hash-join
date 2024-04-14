@@ -5,13 +5,13 @@ use crate::{
 
 use anyhow::{anyhow, Result};
 
-pub struct ConcurrentHashMap<B: HashBucket> {
+pub struct ConcurrentHashTable<B: HashBucket> {
     buckets: Vec<parking_lot::Mutex<B>>,
     bucket_num: usize,
 }
 
-impl<B: HashBucket> ConcurrentHashMap<B> {
-    pub fn new(bucket_num: usize) -> Result<ConcurrentHashMap<B>> {
+impl<B: HashBucket> ConcurrentHashTable<B> {
+    pub fn new(bucket_num: usize) -> Result<ConcurrentHashTable<B>> {
         // Bucket number must be a power of 2 so modding can be optimized to bitwise AND.
         if !bucket_num.is_power_of_two() {
             return Err(anyhow!("Bucket number must be a power of 2"));
@@ -20,7 +20,7 @@ impl<B: HashBucket> ConcurrentHashMap<B> {
         for _ in 0..bucket_num {
             buckets.push(parking_lot::Mutex::new(B::default()));
         }
-        Ok(ConcurrentHashMap {
+        Ok(ConcurrentHashTable {
             buckets,
             bucket_num,
         })
@@ -34,11 +34,10 @@ impl<B: HashBucket> ConcurrentHashMap<B> {
 
     pub fn get_matching_tuples(&self, key: Key) -> Option<Tuple> {
         let bucket = &self.buckets[bucket_hash(key) as usize & (self.bucket_num - 1)];
-        let bucket = unsafe { bucket.make_guard_unchecked() }
+        let tuple = unsafe { bucket.make_guard_unchecked() }
             .iter()
             .find(move |t| t.key_match(key))
             .cloned();
-        let tuple = bucket.iter().find(move |t| t.key_match(key)).cloned();
         tuple
     }
 }
@@ -49,7 +48,7 @@ mod tests {
 
     #[test]
     fn test_concurrent_hash_table() {
-        let hash_table = ConcurrentHashMap::<Vec<Tuple>>::new(16).unwrap();
+        let hash_table = ConcurrentHashTable::<Vec<Tuple>>::new(16).unwrap();
         let tuple = Tuple::new(1);
         hash_table.insert(tuple.clone());
 
