@@ -8,7 +8,7 @@ We are going to implement two variants of in-memory parallel hash join to examin
 
 ## URL
 
-https://github.com/cmu-15618-team/parallel-hash-join/blob/main/report/project-proposal.md
+https://cmu-15618-team.github.io/parallel-hash-join/
 
 ## Background
 
