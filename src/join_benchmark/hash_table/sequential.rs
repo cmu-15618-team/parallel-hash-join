@@ -6,7 +6,7 @@ use crate::{
 use anyhow::{anyhow, Result};
 
 pub struct SequentialHashTable<B: HashBucket> {
-    buckets: Vec<B>,
+    pub buckets: Vec<B>,
     bucket_num: usize,
 }
 

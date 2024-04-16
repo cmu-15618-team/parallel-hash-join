@@ -1,4 +1,6 @@
 use crate::tuple::{DataChunk, Tuple};
+use std::error::Error;
+use csv::Writer;
 
 use super::{hash_table::sequential::SequentialHashTable, HashJoinBenchmark};
 
@@ -20,6 +22,23 @@ impl SequentialHashJoin {
     }
 }
 
+/// Helper functions
+impl SequentialHashJoin {
+    pub fn export_bucket_sizes(&self) -> Result<(), Box<dyn Error>> {
+        let file_path = "bucket_sizes.csv";
+        let mut wtr = Writer::from_path(file_path)?;
+
+        for bucket in self.hash_table.buckets.iter() {
+            let size = bucket.len();
+            wtr.write_record(&[size.to_string()])?;
+        }
+
+        wtr.flush()?;
+
+        Ok(())
+    }
+}
+
 impl HashJoinBenchmark for SequentialHashJoin {
     fn partition(&self) {}
 
@@ -29,6 +48,8 @@ impl HashJoinBenchmark for SequentialHashJoin {
                 self.hash_table.insert(tuple);
             }
         }
+
+        self.export_bucket_sizes().unwrap();
     }
 
     fn probe(&mut self) {
