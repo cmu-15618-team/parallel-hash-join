@@ -1,4 +1,5 @@
-use rand::{distributions::Distribution, Rng};
+use rand::{distributions::Distribution, Rng, SeedableRng};
+use rand::rngs::StdRng;
 
 const LOW_SKEW_ZIPF_ALPHA: f64 = 1.05;
 const HIGH_SKEW_ZIPF_ALPHA: f64 = 1.25;
@@ -51,14 +52,14 @@ impl TupleGenerator {
 
     /// Each inner tuple matches every outer tuple with equal probability.
     pub fn gen_uniform(&self) -> (Vec<DataChunk>, Vec<DataChunk>) {
-        let mut rng = rand::thread_rng();
+        let mut rng = StdRng::from_seed([1; 32]);
         let inner = self.gen_inner_table();
         let outer = self.gen_outer_table(|_| Tuple::new(rng.gen_range(0..self.inner_tuple_num)));
         (inner, outer)
     }
 
     pub fn gen_low_skew(&self) -> (Vec<DataChunk>, Vec<DataChunk>) {
-        let mut rng = rand::thread_rng();
+        let mut rng = StdRng::from_seed([1; 32]);
         let zipf = zipf::ZipfDistribution::new(self.inner_tuple_num as usize, LOW_SKEW_ZIPF_ALPHA)
             .unwrap();
         let inner = self.gen_inner_table();
@@ -67,7 +68,7 @@ impl TupleGenerator {
     }
 
     pub fn gen_high_skew(&self) -> (Vec<DataChunk>, Vec<DataChunk>) {
-        let mut rng = rand::thread_rng();
+        let mut rng = StdRng::from_seed([1; 32]);
         let zipf = zipf::ZipfDistribution::new(self.inner_tuple_num as usize, HIGH_SKEW_ZIPF_ALPHA)
             .unwrap();
         let inner = self.gen_inner_table();
