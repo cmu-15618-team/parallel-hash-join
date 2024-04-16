@@ -34,10 +34,9 @@ impl<B: HashBucket> ConcurrentHashTable<B> {
 
     pub fn get_matching_tuples(&self, key: Key) -> Option<Tuple> {
         let bucket = &self.buckets[bucket_hash(key) as usize & (self.bucket_num - 1)];
-        let tuple = unsafe { bucket.make_guard_unchecked() }
-            .iter()
-            .find(move |t| t.key_match(key))
-            .cloned();
+        let bucket = unsafe { bucket.make_guard_unchecked() };
+        let tuple = bucket.iter().find(move |t| t.key_match(key)).cloned();
+        std::mem::forget(bucket);
         tuple
     }
 }
