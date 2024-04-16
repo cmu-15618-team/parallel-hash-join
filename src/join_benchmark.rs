@@ -26,7 +26,21 @@ pub trait HashJoinBenchmark {
     /// Clone the tuple to simulate outputting it.
     /// See https://doc.rust-lang.org/std/hint/fn.black_box.html
     fn produce_tuple(tuple: &Tuple) {
-        std::hint::black_box(tuple.clone());
+        use std::hint::black_box;
+        fn contains(haystack: &[&str], needle: &str) -> bool {
+            haystack.iter().any(|x| x == &needle)
+        }
+
+        fn benchmark() {
+            let haystack = vec!["abc", "def", "ghi", "jkl", "mno"];
+            let needle = "ghi";
+            for _ in 0..1 {
+                // Adjust our benchmark loop contents
+                black_box(contains(black_box(&haystack), black_box(needle)));
+            }
+        }
+
+        black_box(benchmark())
     }
 }
 
