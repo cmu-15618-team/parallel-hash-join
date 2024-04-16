@@ -1,21 +1,29 @@
 # In Memory Parallel Hash Join Project Milestone Report
+
 <center>Authors: Zhidong Guo (zhidongg), Ye Yuan (yeyuan3)</center>
 
-## 1. Next Milestone Schedule
+## 1. Work Completed So Far
 
+### 1.1. Rust Language and Library Onboarding
 
-## 2. Work Completed So Far
+We have spent some time onboarding Rust language and frameworks. We have familiarized ourselves with the Rust syntax, data structures, and concurrency model. We have also explored various Rust libraries that might be useful for our project, including:
 
-### 2.1. Implementation of Hash Join Infrastructures
+- [rayon](https://docs.rs/rayon/latest/rayon/) for multi-threaded parallelism.
+- [boxcar](https://docs.rs/boxcars/latest/boxcars/) for lock-free data structures implementation.
+- [xxhash-rust](https://docs.rs/xxhash-rust/latest/xxhash_rust/xxh64/index.html) for hash function implementation. We choose xxhash as it is the fastest hash function without quality problems according to the [smhasher benchmark](https://github.com/rurban/smhasher).
+- [parking_lot](https://docs.rs/parking_lot/latest/parking_lot/) for smaller and faster locks than those in the standard library.
+- [clap](https://docs.rs/clap/latest/clap/) for building the command line interface of our benchmark program.
 
-We have implemented the infrastructures for the sequential hash join and two variants of in-memory parallel hash join in Rust. The infrastructures include the following components:
+### 1.2. Implementation of Benchmark Infrastructures
 
-- **Input File Reader**: 
-- 
+We have set up the benchmark infrastructure for different variants of the hash join.
 
-### 2.2. Implementation of Sequential Hash Join
+- Work laod generator generates the tuples in the inner and outer relation. We can specify the number of tuples in both relations, the cardinality ratio, outer table foregin key distribution. Currently we support uniform distribution and zipfan distribution.
+- Time measuring: the framework times the three phases in a hash join: partition, build, and probe.
 
-We have implemented a sequential hash join algorithm as a baseline. The algorithm is implemented in Rust and is able to join two relations based on a join key. The pseudo code of the algorithm is as follows:
+### 1.3. Implementation of Sequential Hash Join
+
+We have implemented a sequential hash join algorithm as a baseline. The pseudo code of the algorithm is as follows:
 
 ```text
 /**
@@ -57,28 +65,37 @@ func SequentialHashJoin(Table R, Table S, Attribute R_key, Attribute S_key):
     return Result
 ```
 
-#### 2.2.1. Complexity Analysis
+### 1.4. Implementation of Parallel Shared Hash Join
 
-- **Time Complexity**: Assume the smaller table `R` has $|R|$ rows and the larger table `S` has $|S|$ rows. For the build phase, the time complexity is $O(|R|)$. In the probe phase, the worst case rows in a hash bucket will be $|R|$ when rows are highly skewed. Therefore, the worst case time complexity of the probe phase is $O(|S| \cdot |R|)$. As a result, the overall time complexity of the sequential hash join algorithm is $O(|R| + |S| \cdot |R|)$.
-- **Space Complexity**: The space complexity of the sequential hash join algorithm is $O(|R|)$ for the hash table.
+The parallel shared hash join is essentially the same as the sequential version, except that we split both tables into chunks of data and let multiple threads process them in parallel. We compared the performance of implementing the hash bucket with `Mutex<Vec>` and `boxcar::Vec` (lock free vector), and found that the former provides better performance. We also implemented static scheduling and dynamic scheudling to account for the workload imbalance in high skew workloads.
 
-#### 2.2.2. Performance Evaluation
+### 1.5. Evaluation of Parallel Shared hash Join v.s. Sequental
 
-We have evaluated the performance of the sequential hash join algorithm using synthetic data with different sizes and data skewness. The evaluation results are as follows:
+TODO
 
-**_PLACEHOLDER_**
+## 2. Problems
 
-### 2.3. Implementation of Benchmarking Framework
-
-We have implemented a benchmarking framework in Python to evaluate the performance of the hash join algorithms. The framework is able to generate synthetic data with different data skewness and sizes, run the hash join algorithms on the data, and collect performance metrics such as execution time and memory usage. We also tested the framework with the sequential hash join algorithm and it is able to produce reasonable results.
-
-### 2.4. Rust Language and Frameworks Onboarding
-
-We have spent some time onboarding Rust language and frameworks. We have familiarized ourselves with the Rust syntax, data structures, and concurrency model. We have also explored some Rust libraries and frameworks that might be useful for our project, such as `rayon` for parallelism and `boxcar` for lock-free data structures implementation.
+1. The description of how partitioned hash join should be implemented and why the increased cache hit rate would offset partition cost are vague in the paper that we based our project proposal on. Further investigation is needed as to implement it in the optimal way.
+2. GHC's non-standard Rust installation prevents our program from compiling since it's using some unstable features. Therefore, we are switching to PSC machines for the benchmark.
 
 ## 3. List of Goals
 
 Considering the progress we have made so far is on track with our initial plan, we will continue to work on the following goals for the final presentation:
 
-1. 
+1. Implement parallel partitioned hash join.
+2. Refine the benchmark infrastructure to measure workload imbalance through the distribution hash bucket sizes that outer tuples fall in.
+3. Perform the following evaluations and analysis.
+   1. Stage-by-stage exeuciton time comparison of sequential, parallel shared, and parallel partitioned variants under uniform, low skew, and high skew workload.
+   2. Synchronization cost analysis through flamegraph.
+   3. Cache analysis using performance counter.
+4. Time permitting, we will explore utilizing prefetch to further increase cache hit rate.
 
+## 4. Updated Schedule
+
+| End Date | Task                                                         |
+| -------- | ------------------------------------------------------------ |
+| 4-20     | Investigate the optimial implementation of partitioned variant |
+| 4-24     | Implement partitioned hash join                              |
+| 4-27     | Perform execution time comparision and synchronization cost evaluation |
+| 4-30     | Perform cache evaluation                                     |
+| 5-5      | Report writing                                               |
