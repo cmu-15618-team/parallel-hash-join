@@ -30,6 +30,12 @@ struct Args {
     /// Total number of buckets in the hash table(s)
     #[arg(short, long, default_value_t = 1_048_576)]
     bucket_num: usize,
+
+    /// Execution mode, value = [all, uq, uhd, uhs, lq, lhd, lhs, hq, hhd, hhs]
+    /// [u: uniform, l: low skew, h: high skew], [q: sequential, hd: shared dynamic, hs: shared static]
+    #[arg(short, long, default_value = "all")]
+    mode: String,
+
 }
 
 fn main() {
@@ -62,40 +68,94 @@ fn main() {
         };
     }
 
-    // Uniform workload.
-    run!("Uniform + Sequential", gen_uniform, SequentialHashJoin);
-    run!(
-        "Uniform + Shared + Dynamic",
-        gen_uniform,
-        SharedDynamicHashJoin
-    );
-    run!(
-        "Uniform + Shared + Static",
-        gen_uniform,
-        SharedStaticHashJoin
-    );
-    // Low skew workload.
-    run!("Low Skew + Sequential", gen_low_skew, SequentialHashJoin);
-    run!(
-        "Low Skew + Shared + Dynamic",
-        gen_low_skew,
-        SharedDynamicHashJoin
-    );
-    run!(
-        "Low Skew + Shared + Static",
-        gen_low_skew,
-        SharedStaticHashJoin
-    );
-    // High skew workload.
-    run!("High Skew + Sequential", gen_high_skew, SequentialHashJoin);
-    run!(
-        "High Skew + Shared + Dynamic",
-        gen_high_skew,
-        SharedDynamicHashJoin
-    );
-    run!(
-        "High Skew + Shared + Static",
-        gen_high_skew,
-        SharedStaticHashJoin
-    );
+    // Execute the selected mode
+    match args.mode.as_str() {
+        "all" => {
+            run!("Uniform + Sequential", gen_uniform, SequentialHashJoin);
+            run!(
+                "Uniform + Shared + Dynamic",
+                gen_uniform,
+                SharedDynamicHashJoin
+            );
+            run!(
+                "Uniform + Shared + Static",
+                gen_uniform,
+                SharedStaticHashJoin
+            );
+            run!("Low Skew + Sequential", gen_low_skew, SequentialHashJoin);
+            run!(
+                "Low Skew + Shared + Dynamic",
+                gen_low_skew,
+                SharedDynamicHashJoin
+            );
+            run!(
+                "Low Skew + Shared + Static",
+                gen_low_skew,
+                SharedStaticHashJoin
+            );
+            run!("High Skew + Sequential", gen_high_skew, SequentialHashJoin);
+            run!(
+                "High Skew + Shared + Dynamic",
+                gen_high_skew,
+                SharedDynamicHashJoin
+            );
+            run!(
+                "High Skew + Shared + Static",
+                gen_high_skew,
+                SharedStaticHashJoin
+            );
+        }
+        "uq" => {
+            run!("Uniform + Sequential", gen_uniform, SequentialHashJoin);
+        }
+        "uhd" => {
+            run!(
+                "Uniform + Shared + Dynamic",
+                gen_uniform,
+                SharedDynamicHashJoin
+            );
+        }
+        "uhs" => {
+            run!(
+                "Uniform + Shared + Static",
+                gen_uniform,
+                SharedStaticHashJoin
+            );
+        }
+        "lq" => {
+            run!("Low Skew + Sequential", gen_low_skew, SequentialHashJoin);
+        }
+        "lhd" => {
+            run!(
+                "Low Skew + Shared + Dynamic",
+                gen_low_skew,
+                SharedDynamicHashJoin
+            );
+        }
+        "lhs" => {
+            run!(
+                "Low Skew + Shared + Static",
+                gen_low_skew,
+                SharedStaticHashJoin
+            );
+        }
+        "hq" => {
+            run!("High Skew + Sequential", gen_high_skew, SequentialHashJoin);
+        }
+        "hhd" => {
+            run!(
+                "High Skew + Shared + Dynamic",
+                gen_high_skew,
+                SharedDynamicHashJoin
+            );
+        }
+        "hhs" => {
+            run!(
+                "High Skew + Shared + Static",
+                gen_high_skew,
+                SharedStaticHashJoin
+            );
+        }
+        _ => {}
+    }
 }
