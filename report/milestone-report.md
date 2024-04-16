@@ -2,6 +2,14 @@
 
 <center>Authors: Zhidong Guo (zhidongg), Ye Yuan (yeyuan3)</center>
 
+## 1. Summary
+
+We have implmeneted the sequential hash join and parallel shared hash join, where mulitple threads build and probe a shared hash table. The parallel implementation supports both static and dynamic scheduling. We have set up the benchmark framework which enables us to generate workloads of varying skewness and measure the per-stage (partition, build, probe) execution time.
+
+A preliminary comparison of these two implementations gives us the following observations - 1. the scheduling overhead is extremely low, 2. the parallel implementation is unable to achieve linear speedup primarily due to workload imbalance, 3. the computation is dominated by the probe phase, 4. hash function adds to workload skewness even if the data is uniform.
+
+For the remaining duration of the project, we will implement parallel partitioned hash join, where the tuples are partitioned into bottom-level-cache-sized chunks and joined locally, and perform a series of evaluation on synchronization cost, cache access, and workload distribution to figure out whether partitioning is beneficial for in-memory parallel hash join.
+
 ## 1. Work Completed So Far
 
 ### 1.1. Rust Language and Library Onboarding
