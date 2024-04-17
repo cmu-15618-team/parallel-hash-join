@@ -84,8 +84,8 @@ The parallel shared hash join is essentially the same as the sequential version,
 We are joining two relations $R$ and $S$, where $|R| = 16000000$, $|S| = 256000000$, and each tuple comes in the form of `(key, payload)`, where both `key` and `payload` takes up 8 bytes. The `key` column of the inner relation is its primary key (monotonically increasing integer sequence), while that of the outer relation is the foreign key following either
 
 - Uniform distribution
-- Zipfan distribution with $\alpha = 1.05$
-- Zipfan distribution with $\alpha = 1.25$
+- Low skew: zipfan distribution with $\alpha = 1.05$
+- High skew: zipfan distribution with $\alpha = 1.25$
 
 ### 1.5.2. Performance Analysis
 
