@@ -75,7 +75,7 @@ func SequentialHashJoin(Table R, Table S, Attribute R_key, Attribute S_key):
 
 ### 1.4. Implementation of Parallel Shared Hash Join
 
-The parallel shared hash join is essentially the same as the sequential version, except that we split both tables into chunks of data and let multiple threads process them in parallel. We compared the performance of implementing the hash bucket with `Mutex<Vec>` and `boxcar::Vec` (lock free vector), and found that the former provides better performance. We also implemented static scheduling and dynamic scheudling to account for the workload imbalance in high skew workloads.
+The parallel shared hash join is essentially the same as the sequential version, except that we split both tables into chunks of data and let multiple threads process them in parallel. We compared the performance of implementing the hash bucket with `Mutex<Vec>` and `boxcar::Vec` (lock free vector), and found that the former provides better performance. We also implemented static scheduling and dynamic scheudling to account for the possible imbalance.
 
 ### 1.5. Evaluation of Parallel Shared hash Join v.s. Sequental
 
