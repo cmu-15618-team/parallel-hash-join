@@ -102,7 +102,7 @@ Another interesting observation is that xxhash introduces skewness to the hash b
 1. The description of how partitioned hash join should be implemented and why the increased cache hit rate would offset partition cost are vague in the paper that we based our project proposal on. Further investigation is needed as to implement it in the optimal way.
 2. GHC's non-standard Rust installation prevents our program from compiling since it's using some unstable features. Therefore, we are switching to PSC machines for the benchmark.
 
-## 3. List of Goals
+## 3. Updated Goals
 
 Considering the progress we have made so far is on track with our initial plan, we will continue to work on the following goals for the final presentation:
 
