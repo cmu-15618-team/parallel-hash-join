@@ -1,3 +1,7 @@
+use std::sync::Arc;
+use std::time::Instant;
+use parking_lot::Mutex;
+use rand::distributions::uniform::SampleBorrow;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 use super::{hash_table::concurrent::ConcurrentHashTable, HashJoinBenchmark};
@@ -33,13 +37,31 @@ impl HashJoinBenchmark for SharedDynamicHashJoin {
     }
 
     fn probe(&mut self) {
+        let vec = Arc::new(boxcar::Vec::new());
+        let global_start = Instant::now();
         for chunk in std::mem::take(&mut self.outer) {
+            let vec = vec.clone();
             chunk.par_iter().for_each(|tuple| {
+                let start = Instant::now();
                 self.hash_table
                     .get_matching_tuples(tuple.key())
                     .inspect(Self::produce_tuple);
+                let duration = start.elapsed().as_millis();
+                vec.push(duration);
             });
         }
+        let global_duration = global_start.elapsed().as_millis();
+        let task_duration_sum = vec.clone().iter().map(|(_, t)| *t).sum::<u128>();
+        // print stats
+        println!("Global duration: {} ms", global_duration);
+        println!("Task duration sum: {} ms", task_duration_sum);
+        println!("Scheduling overhead: {} ms", global_duration - task_duration_sum);
+
+        // print all items in the vector split by comma
+        vec.clone().iter().for_each(|task_time| {
+            print!("{:?},", task_time);
+        });
+        println!();
     }
 }
 
