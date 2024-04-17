@@ -6,7 +6,7 @@
 
 We have implmeneted the sequential hash join and parallel shared hash join, where mulitple threads build and probe a shared hash table. The parallel implementation supports both static and dynamic scheduling. We have set up the benchmark framework which enables us to generate workloads of varying skewness and measure the per-stage (partition, build, probe) execution time.
 
-A preliminary comparison of these two implementations gives us the following observations - 1. the scheduling overhead is extremely low, 2. the parallel implementation is unable to achieve linear speedup primarily due to workload imbalance, 3. the computation is dominated by the probe phase, 4. hash function adds to workload skewness even if the data is uniform.
+A preliminary comparison of these two implementations gives us the following observations - 1. the parallel implementation almost achieves perfect speedup compared with the sequential version, 2. the computation is dominated by the probe phase so we should focus on read hash bucket's performance, 3. hash function adds to workload skewness even if the data is uniform.
 
 For the remaining duration of the project, we will implement parallel partitioned hash join, where the tuples are partitioned into bottom-level-cache-sized chunks and joined locally, and perform a series of evaluation on synchronization cost, cache access, and workload distribution to figure out whether partitioning is beneficial for in-memory parallel hash join.
 
@@ -79,7 +79,23 @@ The parallel shared hash join is essentially the same as the sequential version,
 
 ### 1.5. Evaluation of Parallel Shared hash Join v.s. Sequental
 
-TODO
+#### 1.5.1. Workload
+
+We are joining two relations $R$ and $S$, where $|R| = 16000000$, $|S| = 256000000$, and each tuple comes in the form of `(key, payload)`, where both `key` and `payload` takes up 8 bytes. The `key` column of the inner relation is its primary key (monotonically increasing integer sequence), while that of the outer relation is the foreign key following either
+
+- Uniform distribution
+- Zipfan distribution with $\alpha = 1.05$
+- Zipfan distribution with $\alpha = 1.25$
+
+### 1.5.2. Performance Analysis
+
+The figure below shows the performance comparison of three hash join variants under three workloads. The three variants are: sequential, shared hash table with static scheduling, and shared hash table with dynamic scheduling. The parallel hash joins are run with 8 threads. From this figure, we can see that under all workloads, the parallel variants reach a speedup of around 7.3x, and the probe phase dominates the execution time. This observation suggests that we should focus on optimizing the hash bucket's read performance.
+
+![sequential-parallel-perf](figs/seqential-parallel-perf.jpg)
+
+Another interesting observation is that xxhash introduces skewness to the hash bucket sizes even if the input is uniform. This implies that if partitioning also uses xxhash (with a different seed), **the number of tuples in the partitions may be skewed**.
+
+![hash-bucket-size-distr](figs/hash-bucket-size-distr.png)
 
 ## 2. Problems
 
