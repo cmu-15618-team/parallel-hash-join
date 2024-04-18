@@ -6,7 +6,9 @@ pub mod shared;
 
 use crate::tuple::{Key, Tuple};
 
-pub type NoOutput = ();
+pub type SchedulingType = bool;
+pub const STATIC_SCHEDULING: SchedulingType = true;
+pub const DYNAMIC_SCHEDULING: SchedulingType = false;
 
 fn time_phase<T>(name: &str, f: impl FnOnce() -> T) -> T {
     let start = std::time::Instant::now();
@@ -15,6 +17,8 @@ fn time_phase<T>(name: &str, f: impl FnOnce() -> T) -> T {
     println!("{}: {:?}", name, elapsed);
     ret
 }
+
+pub type NoOutput = ();
 
 pub trait HashJoinBenchmark {
     type PartitionOutput;

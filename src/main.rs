@@ -1,10 +1,8 @@
 use clap::Parser;
 use parallel_hash_join::{
     join_benchmark::{
-        partitioned::PartitionedDynamicHashJoin,
-        sequential::SequentialHashJoin,
-        shared::{SharedDynamicHashJoin, SharedStaticHashJoin},
-        HashJoinBenchmark,
+        partitioned::PartitionedDynamicHashJoin, sequential::SequentialHashJoin,
+        shared::SharedHashJoin, HashJoinBenchmark, DYNAMIC_SCHEDULING, STATIC_SCHEDULING,
     },
     tuple::TupleGenerator,
 };
@@ -63,9 +61,9 @@ fn main() {
         .unwrap();
 
     macro_rules! run {
-        ($name:expr, $workload_fn:ident, $benchmark:ident $(, $args:expr)*) => {
+        ($name:expr, $workload_fn:ident, $benchmark:ident $(::< $scheduling:ident >)? $(, $args:expr)*) => {
             let (inner, outer) = tuple_gen.$workload_fn();
-            let mut benchmark = $benchmark::new($($args,)* inner, outer);
+            let mut benchmark = $benchmark$(::< $scheduling >)?::new($($args,)* inner, outer);
             println!("Running {}...", $name);
             benchmark.run();
             println!();
@@ -84,13 +82,13 @@ fn main() {
             run!(
                 "Uniform + Shared + Dynamic",
                 gen_uniform,
-                SharedDynamicHashJoin,
+                SharedHashJoin::<DYNAMIC_SCHEDULING>,
                 args.bucket_num
             );
             run!(
                 "Uniform + Shared + Static",
                 gen_uniform,
-                SharedStaticHashJoin,
+                SharedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num
             );
             run!(
@@ -109,13 +107,13 @@ fn main() {
             run!(
                 "Low Skew + Shared + Dynamic",
                 gen_low_skew,
-                SharedDynamicHashJoin,
+                SharedHashJoin::<DYNAMIC_SCHEDULING>,
                 args.bucket_num
             );
             run!(
                 "Low Skew + Shared + Static",
                 gen_low_skew,
-                SharedStaticHashJoin,
+                SharedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num
             );
             run!(
@@ -134,13 +132,13 @@ fn main() {
             run!(
                 "High Skew + Shared + Dynamic",
                 gen_high_skew,
-                SharedDynamicHashJoin,
+                SharedHashJoin::<DYNAMIC_SCHEDULING>,
                 args.bucket_num
             );
             run!(
                 "High Skew + Shared + Static",
                 gen_high_skew,
-                SharedStaticHashJoin,
+                SharedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num
             );
             run!(
@@ -163,7 +161,7 @@ fn main() {
             run!(
                 "Uniform + Shared + Dynamic",
                 gen_uniform,
-                SharedDynamicHashJoin,
+                SharedHashJoin::<DYNAMIC_SCHEDULING>,
                 args.bucket_num
             );
         }
@@ -171,7 +169,7 @@ fn main() {
             run!(
                 "Uniform + Shared + Static",
                 gen_uniform,
-                SharedStaticHashJoin,
+                SharedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num
             );
         }
@@ -196,7 +194,7 @@ fn main() {
             run!(
                 "Low Skew + Shared + Dynamic",
                 gen_low_skew,
-                SharedDynamicHashJoin,
+                SharedHashJoin::<DYNAMIC_SCHEDULING>,
                 args.bucket_num
             );
         }
@@ -204,7 +202,7 @@ fn main() {
             run!(
                 "Low Skew + Shared + Static",
                 gen_low_skew,
-                SharedStaticHashJoin,
+                SharedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num
             );
         }
@@ -229,7 +227,7 @@ fn main() {
             run!(
                 "High Skew + Shared + Dynamic",
                 gen_high_skew,
-                SharedDynamicHashJoin,
+                SharedHashJoin::<DYNAMIC_SCHEDULING>,
                 args.bucket_num
             );
         }
@@ -237,7 +235,7 @@ fn main() {
             run!(
                 "High Skew + Shared + Static",
                 gen_high_skew,
-                SharedStaticHashJoin,
+                SharedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num
             );
         }
