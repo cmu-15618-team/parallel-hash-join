@@ -94,6 +94,13 @@ fn main() {
                 args.bucket_num
             );
             run!(
+                "Uniform + Partitioned + Dynamic",
+                gen_low_skew,
+                PartitionedDynamicHashJoin,
+                args.bucket_num,
+                args.partition_num
+            );
+            run!(
                 "Low Skew + Sequential",
                 gen_low_skew,
                 SequentialHashJoin,
@@ -112,6 +119,13 @@ fn main() {
                 args.bucket_num
             );
             run!(
+                "Low Skew + Partitioned + Dynamic",
+                gen_low_skew,
+                PartitionedDynamicHashJoin,
+                args.bucket_num,
+                args.partition_num
+            );
+            run!(
                 "High Skew + Sequential",
                 gen_high_skew,
                 SequentialHashJoin,
@@ -128,6 +142,13 @@ fn main() {
                 gen_high_skew,
                 SharedStaticHashJoin,
                 args.bucket_num
+            );
+            run!(
+                "High Skew + Partitioned + Dynamic",
+                gen_low_skew,
+                PartitionedDynamicHashJoin,
+                args.bucket_num,
+                args.partition_num
             );
         }
         "uq" => {
@@ -187,6 +208,15 @@ fn main() {
                 args.bucket_num
             );
         }
+        "lpd" => {
+            run!(
+                "Low Skew + Partitioned + Dynamic",
+                gen_low_skew,
+                PartitionedDynamicHashJoin,
+                args.bucket_num,
+                args.partition_num
+            );
+        }
         "hq" => {
             run!(
                 "High Skew + Sequential",
@@ -209,6 +239,15 @@ fn main() {
                 gen_high_skew,
                 SharedStaticHashJoin,
                 args.bucket_num
+            );
+        }
+        "hpd" => {
+            run!(
+                "High Skew + Partitioned + Dynamic",
+                gen_high_skew,
+                PartitionedDynamicHashJoin,
+                args.bucket_num,
+                args.partition_num
             );
         }
         _ => {}
