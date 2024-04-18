@@ -1,31 +1,35 @@
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
-use super::{hash_table::concurrent::ConcurrentHashTable, HashJoinBenchmark};
+use super::{hash_table::concurrent::ConcurrentHashTable, HashJoinBenchmark, NoOutput};
 use crate::tuple::{DataChunk, Tuple};
 
 /// All threads build a single shared hash table and probe it concurrently.
 /// Use dynamic scheduling.
 pub struct SharedDynamicHashJoin {
+    inner: Option<Vec<DataChunk>>,
+    outer: Option<Vec<DataChunk>>,
     bucket_num: usize,
 }
 
 impl SharedDynamicHashJoin {
-    pub fn new(bucket_num: usize) -> Self {
-        Self { bucket_num }
+    pub fn new(bucket_num: usize, inner: Vec<DataChunk>, outer: Vec<DataChunk>) -> Self {
+        Self {
+            inner: Some(inner),
+            outer: Some(outer),
+            bucket_num,
+        }
     }
 }
 
 impl HashJoinBenchmark for SharedDynamicHashJoin {
-    type PartitionOutput = Vec<DataChunk>;
+    type PartitionOutput = NoOutput;
     type BuildOutput = ConcurrentHashTable<Vec<Tuple>>;
 
-    fn partition(&self, inner: Vec<DataChunk>) -> Self::PartitionOutput {
-        inner
-    }
+    fn partition(&mut self) -> Self::PartitionOutput {}
 
-    fn build(&self, inner: Self::PartitionOutput) -> Self::BuildOutput {
+    fn build(&mut self, _: Self::PartitionOutput) -> Self::BuildOutput {
         let hash_table = ConcurrentHashTable::new(self.bucket_num).unwrap();
-        for chunk in inner {
+        for chunk in self.inner.take().unwrap() {
             chunk
                 .into_par_iter()
                 .for_each(|tuple| hash_table.insert(tuple));
@@ -33,8 +37,8 @@ impl HashJoinBenchmark for SharedDynamicHashJoin {
         hash_table
     }
 
-    fn probe(&self, hash_table: Self::BuildOutput, outer: Vec<DataChunk>) {
-        for chunk in outer {
+    fn probe(&mut self, hash_table: Self::BuildOutput) {
+        for chunk in self.outer.take().unwrap() {
             chunk.par_iter().for_each(|tuple| {
                 hash_table
                     .get_matching_tuples(tuple.key())
@@ -47,26 +51,30 @@ impl HashJoinBenchmark for SharedDynamicHashJoin {
 /// All threads build a single shared hash table and probe it concurrently.
 /// Use static scheduling.
 pub struct SharedStaticHashJoin {
+    inner: Option<Vec<DataChunk>>,
+    outer: Option<Vec<DataChunk>>,
     bucket_num: usize,
 }
 
 impl SharedStaticHashJoin {
-    pub fn new(bucket_num: usize) -> Self {
-        Self { bucket_num }
+    pub fn new(bucket_num: usize, inner: Vec<DataChunk>, outer: Vec<DataChunk>) -> Self {
+        Self {
+            inner: Some(inner),
+            outer: Some(outer),
+            bucket_num,
+        }
     }
 }
 
 impl HashJoinBenchmark for SharedStaticHashJoin {
-    type PartitionOutput = Vec<DataChunk>;
+    type PartitionOutput = ();
     type BuildOutput = ConcurrentHashTable<Vec<Tuple>>;
 
-    fn partition(&self, inner: Vec<DataChunk>) -> Self::PartitionOutput {
-        inner
-    }
+    fn partition(&mut self) -> Self::PartitionOutput {}
 
-    fn build(&self, inner: Vec<DataChunk>) -> Self::BuildOutput {
+    fn build(&mut self, _: Self::PartitionOutput) -> Self::BuildOutput {
         let hash_table = ConcurrentHashTable::new(self.bucket_num).unwrap();
-        for chunk in inner {
+        for chunk in self.inner.take().unwrap() {
             // Divide the chunks into equal parts for each thread.
             let num_threads = rayon::current_num_threads();
             let thread_chunk_size = chunk.len() / num_threads;
@@ -85,8 +93,8 @@ impl HashJoinBenchmark for SharedStaticHashJoin {
         hash_table
     }
 
-    fn probe(&self, hash_table: Self::BuildOutput, outer: Vec<DataChunk>) {
-        for chunk in outer {
+    fn probe(&mut self, hash_table: Self::BuildOutput) {
+        for chunk in self.outer.take().unwrap() {
             // Divide the chunks into equal parts for each thread.
             let num_threads = rayon::current_num_threads();
             let thread_chunk_size = chunk.len() / num_threads;

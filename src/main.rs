@@ -1,6 +1,7 @@
 use clap::Parser;
 use parallel_hash_join::{
     join_benchmark::{
+        partitioned::PartitionedDynamicHashJoin,
         sequential::SequentialHashJoin,
         shared::{SharedDynamicHashJoin, SharedStaticHashJoin},
         HashJoinBenchmark,
@@ -53,6 +54,8 @@ fn main() {
     assert!(parallelism.is_power_of_two());
     assert_eq!(args.batch_size % parallelism.get(), 0);
     assert_eq!(args.partition_num % parallelism.get(), 0);
+    // We should be able to assign buckets evenly to partitions.
+    assert_eq!(args.bucket_num % args.partition_num, 0);
 
     rayon::ThreadPoolBuilder::new()
         .num_threads(parallelism.get())
@@ -60,10 +63,11 @@ fn main() {
         .unwrap();
 
     macro_rules! run {
-        ($name:expr, $workload_fn:ident, $benchmark:expr) => {
+        ($name:expr, $workload_fn:ident, $benchmark:ident $(, $args:expr)*) => {
             let (inner, outer) = tuple_gen.$workload_fn();
-            println!("Running {}", $name);
-            $benchmark.run(inner, outer);
+            let mut benchmark = $benchmark::new($($args,)* inner, outer);
+            println!("Running {}...", $name);
+            benchmark.run();
             println!();
         };
     }
@@ -74,110 +78,137 @@ fn main() {
             run!(
                 "Uniform + Sequential",
                 gen_uniform,
-                SequentialHashJoin::new(args.bucket_num)
+                SequentialHashJoin,
+                args.bucket_num
             );
             run!(
                 "Uniform + Shared + Dynamic",
                 gen_uniform,
-                SharedDynamicHashJoin::new(args.bucket_num)
+                SharedDynamicHashJoin,
+                args.bucket_num
             );
             run!(
                 "Uniform + Shared + Static",
                 gen_uniform,
-                SharedStaticHashJoin::new(args.bucket_num)
+                SharedStaticHashJoin,
+                args.bucket_num
             );
             run!(
                 "Low Skew + Sequential",
                 gen_low_skew,
-                SequentialHashJoin::new(args.bucket_num)
+                SequentialHashJoin,
+                args.bucket_num
             );
             run!(
                 "Low Skew + Shared + Dynamic",
                 gen_low_skew,
-                SharedDynamicHashJoin::new(args.bucket_num)
+                SharedDynamicHashJoin,
+                args.bucket_num
             );
             run!(
                 "Low Skew + Shared + Static",
                 gen_low_skew,
-                SharedStaticHashJoin::new(args.bucket_num)
+                SharedStaticHashJoin,
+                args.bucket_num
             );
             run!(
                 "High Skew + Sequential",
                 gen_high_skew,
-                SequentialHashJoin::new(args.bucket_num)
+                SequentialHashJoin,
+                args.bucket_num
             );
             run!(
                 "High Skew + Shared + Dynamic",
                 gen_high_skew,
-                SharedDynamicHashJoin::new(args.bucket_num)
+                SharedDynamicHashJoin,
+                args.bucket_num
             );
             run!(
                 "High Skew + Shared + Static",
                 gen_high_skew,
-                SharedStaticHashJoin::new(args.bucket_num)
+                SharedStaticHashJoin,
+                args.bucket_num
             );
         }
         "uq" => {
             run!(
                 "Uniform + Sequential",
                 gen_uniform,
-                SequentialHashJoin::new(args.bucket_num)
+                SequentialHashJoin,
+                args.bucket_num
             );
         }
         "uhd" => {
             run!(
                 "Uniform + Shared + Dynamic",
                 gen_uniform,
-                SharedDynamicHashJoin::new(args.bucket_num)
+                SharedDynamicHashJoin,
+                args.bucket_num
             );
         }
         "uhs" => {
             run!(
                 "Uniform + Shared + Static",
                 gen_uniform,
-                SharedStaticHashJoin::new(args.bucket_num)
+                SharedStaticHashJoin,
+                args.bucket_num
+            );
+        }
+        "upd" => {
+            run!(
+                "Uniform + Partitioned + Dynamic",
+                gen_uniform,
+                PartitionedDynamicHashJoin,
+                args.bucket_num,
+                args.partition_num
             );
         }
         "lq" => {
             run!(
                 "Low Skew + Sequential",
                 gen_low_skew,
-                SequentialHashJoin::new(args.bucket_num)
+                SequentialHashJoin,
+                args.bucket_num
             );
         }
         "lhd" => {
             run!(
                 "Low Skew + Shared + Dynamic",
                 gen_low_skew,
-                SharedDynamicHashJoin::new(args.bucket_num)
+                SharedDynamicHashJoin,
+                args.bucket_num
             );
         }
         "lhs" => {
             run!(
                 "Low Skew + Shared + Static",
                 gen_low_skew,
-                SharedStaticHashJoin::new(args.bucket_num)
+                SharedStaticHashJoin,
+                args.bucket_num
             );
         }
         "hq" => {
             run!(
                 "High Skew + Sequential",
                 gen_high_skew,
-                SequentialHashJoin::new(args.bucket_num)
+                SequentialHashJoin,
+                args.bucket_num
             );
         }
         "hhd" => {
             run!(
                 "High Skew + Shared + Dynamic",
                 gen_high_skew,
-                SharedDynamicHashJoin::new(args.bucket_num)
+                SharedDynamicHashJoin,
+                args.bucket_num
             );
         }
         "hhs" => {
             run!(
                 "High Skew + Shared + Static",
                 gen_high_skew,
-                SharedStaticHashJoin::new(args.bucket_num)
+                SharedStaticHashJoin,
+                args.bucket_num
             );
         }
         _ => {}
