@@ -5,6 +5,7 @@ use crate::{
 
 use anyhow::{anyhow, Result};
 
+#[derive(Clone)]
 pub struct SequentialHashTable<B: HashBucket> {
     buckets: Vec<B>,
     bucket_num: usize,

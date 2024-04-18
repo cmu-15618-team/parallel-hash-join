@@ -69,6 +69,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
+name = "boxcar"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e516014975db8769c0dcd1aba681c21079475fcddf77118bf54f9e2e013f6b29"
+
+[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -189,6 +195,7 @@ name = "parallel-hash-join"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "boxcar",
  "clap",
  "parking_lot",
  "rand",

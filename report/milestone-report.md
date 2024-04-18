@@ -26,7 +26,7 @@ We have spent some time onboarding Rust language and frameworks. We have familia
 
 We have set up the benchmark infrastructure for different variants of the hash join.
 
-- Work laod generator generates the tuples in the inner and outer relation. We can specify the number of tuples in both relations, the cardinality ratio, outer table foregin key distribution. Currently we support uniform distribution and zipfan distribution.
+- Work laod generator generates the tuples in the inner and outer relation. We can specify the number of tuples in both relations, the cardinality ratio, outer table foregin key distribution. Currently we support uniform distribution and zipfian distribution.
 - Time measuring: the framework times the three phases in a hash join: partition, build, and probe.
 
 ### 1.3. Implementation of Sequential Hash Join
@@ -84,8 +84,8 @@ The parallel shared hash join is essentially the same as the sequential version,
 We are joining two relations $R$ and $S$, where $|R| = 16000000$, $|S| = 256000000$, and each tuple comes in the form of `(key, payload)`, where both `key` and `payload` takes up 8 bytes. The `key` column of the inner relation is its primary key (monotonically increasing integer sequence), while that of the outer relation is the foreign key following either
 
 - Uniform distribution
-- Low skew: zipfan distribution with $\alpha = 1.05$
-- High skew: zipfan distribution with $\alpha = 1.25$
+- Low skew: zipfian distribution with $s = 1.05$
+- High skew: zipfian distribution with $s = 1.25$
 
 ### 1.5.2. Performance Analysis
 

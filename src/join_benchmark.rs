@@ -3,29 +3,35 @@ mod hash_table;
 pub mod sequential;
 pub mod shared;
 
-use crate::tuple::{Key, Tuple};
+use crate::tuple::{DataChunk, Key, Tuple};
 
-fn time_phase(name: &str, mut f: impl FnMut()) {
+pub type NoOutput = ();
+
+fn time_phase<T>(name: &str, f: impl FnOnce() -> T) -> T {
     let start = std::time::Instant::now();
-    f();
+    let ret = f();
     let elapsed = start.elapsed();
     println!("{}: {:?}", name, elapsed);
+    ret
 }
 
 pub trait HashJoinBenchmark {
-    fn partition(&self);
-    fn build(&mut self);
-    fn probe(&mut self);
+    type PartitionOutput;
+    type BuildOutput;
 
-    fn run(&mut self) {
-        time_phase("partition", || self.partition());
-        time_phase("build", || self.build());
-        time_phase("probe", || self.probe());
+    fn partition(&self, inner: Vec<DataChunk>) -> Self::PartitionOutput;
+    fn build(&self, partition_output: Self::PartitionOutput) -> Self::BuildOutput;
+    fn probe(&self, build_output: Self::BuildOutput, outer: Vec<DataChunk>);
+
+    fn run(&self, inner: Vec<DataChunk>, outer: Vec<DataChunk>) {
+        let partition_output = time_phase("partition", move || self.partition(inner));
+        let build_output = time_phase("build", move || self.build(partition_output));
+        time_phase("probe", || self.probe(build_output, outer));
     }
 
     /// Clone the tuple to simulate outputting it.
     /// See https://doc.rust-lang.org/std/hint/fn.black_box.html
-    fn produce_tuple(tuple: &Tuple) {
+    fn produce_tuple(_tuple: &Tuple) {
         use std::hint::black_box;
         fn contains(haystack: &[&str], needle: &str) -> bool {
             haystack.iter().any(|x| x == &needle)
@@ -40,6 +46,7 @@ pub trait HashJoinBenchmark {
             }
         }
 
+        #[allow(clippy::unit_arg)]
         black_box(benchmark())
     }
 }
