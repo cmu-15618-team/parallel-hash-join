@@ -7,7 +7,6 @@ use super::{
 use crate::tuple::{DataChunk, Tuple};
 
 /// All threads build a single shared hash table and probe it concurrently.
-/// Use dynamic scheduling.
 pub struct SharedHashJoin<const S: SchedulingType> {
     inner: Option<Vec<DataChunk>>,
     outer: Option<Vec<DataChunk>>,
