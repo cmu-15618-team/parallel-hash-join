@@ -52,7 +52,7 @@ pub trait HashJoinBenchmark {
         }
 
         #[allow(clippy::unit_arg)]
-        black_box(benchmark())
+        black_box(benchmark());
     }
 }
 

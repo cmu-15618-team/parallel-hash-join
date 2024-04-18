@@ -1,8 +1,8 @@
 use clap::Parser;
 use parallel_hash_join::{
     join_benchmark::{
-        partitioned::PartitionedDynamicHashJoin, sequential::SequentialHashJoin,
-        shared::SharedHashJoin, HashJoinBenchmark, DYNAMIC_SCHEDULING, STATIC_SCHEDULING,
+        partitioned::PartitionedHashJoin, sequential::SequentialHashJoin, shared::SharedHashJoin,
+        HashJoinBenchmark, DYNAMIC_SCHEDULING, STATIC_SCHEDULING,
     },
     tuple::TupleGenerator,
 };
@@ -94,7 +94,14 @@ fn main() {
             run!(
                 "Uniform + Partitioned + Dynamic",
                 gen_low_skew,
-                PartitionedDynamicHashJoin,
+                PartitionedHashJoin::<DYNAMIC_SCHEDULING>,
+                args.bucket_num,
+                args.partition_num
+            );
+            run!(
+                "Uniform + Partitioned + Static",
+                gen_uniform,
+                PartitionedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num,
                 args.partition_num
             );
@@ -119,7 +126,14 @@ fn main() {
             run!(
                 "Low Skew + Partitioned + Dynamic",
                 gen_low_skew,
-                PartitionedDynamicHashJoin,
+                PartitionedHashJoin::<DYNAMIC_SCHEDULING>,
+                args.bucket_num,
+                args.partition_num
+            );
+            run!(
+                "Low Skew + Partitioned + Static",
+                gen_low_skew,
+                PartitionedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num,
                 args.partition_num
             );
@@ -144,7 +158,7 @@ fn main() {
             run!(
                 "High Skew + Partitioned + Dynamic",
                 gen_low_skew,
-                PartitionedDynamicHashJoin,
+                PartitionedHashJoin::<DYNAMIC_SCHEDULING>,
                 args.bucket_num,
                 args.partition_num
             );
@@ -177,7 +191,16 @@ fn main() {
             run!(
                 "Uniform + Partitioned + Dynamic",
                 gen_uniform,
-                PartitionedDynamicHashJoin,
+                PartitionedHashJoin::<DYNAMIC_SCHEDULING>,
+                args.bucket_num,
+                args.partition_num
+            );
+        }
+        "ups" => {
+            run!(
+                "Uniform + Partitioned + Static",
+                gen_uniform,
+                PartitionedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num,
                 args.partition_num
             );
@@ -210,7 +233,16 @@ fn main() {
             run!(
                 "Low Skew + Partitioned + Dynamic",
                 gen_low_skew,
-                PartitionedDynamicHashJoin,
+                PartitionedHashJoin::<DYNAMIC_SCHEDULING>,
+                args.bucket_num,
+                args.partition_num
+            );
+        }
+        "lps" => {
+            run!(
+                "Low Skew + Partitioned + Static",
+                gen_low_skew,
+                PartitionedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num,
                 args.partition_num
             );
@@ -243,7 +275,16 @@ fn main() {
             run!(
                 "High Skew + Partitioned + Dynamic",
                 gen_high_skew,
-                PartitionedDynamicHashJoin,
+                PartitionedHashJoin::<DYNAMIC_SCHEDULING>,
+                args.bucket_num,
+                args.partition_num
+            );
+        }
+        "hps" => {
+            run!(
+                "High Skew + Partitioned + Static",
+                gen_high_skew,
+                PartitionedHashJoin::<STATIC_SCHEDULING>,
                 args.bucket_num,
                 args.partition_num
             );
