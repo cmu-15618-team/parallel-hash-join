@@ -93,6 +93,12 @@ The figure below shows the performance comparison of three hash join variants un
 
 ![sequential-parallel-perf](figs/seqential-parallel-perf.jpg)
 
+From the figure above, we also found that for the sequential hash join, the high skew workload has a shorter execution time than the uniform workload. We hypothesize that high skewness in the data distribution may lead to better cache hit rate. The following plot illustrates the cache hit rate and probe phase execution time under various skew workloads. The data distribution follows the zipfian distribution $f(r; s, N) = \frac{\frac{1}{r^s}}{\sum_{n=1}^N \frac{1}{n^s}}$, within which the factor $s$ controls the skewness of the distribution. When $s = 0$, the distribution is uniform, and as $s$​ increases, the distribution becomes more skewed.
+
+<img src="./figs/cache-miss-rate.png" alt="cache-miss-rate" style="zoom:66%;" />
+
+From the figure above, we can see that the cache miss rate drops as the skewness of the data distribution increases. Also the probe phase execution time decreases as the skewness increases. This observation suggests that **the more skewed the data distribution is, the better the cache hit rate, and the shorter the probe phase execution time**.
+
 Another interesting observation is that xxhash introduces skewness to the hash bucket sizes even if the input is uniform. This implies that if partitioning also uses xxhash (with a different seed), **the number of tuples in the partitions may be skewed**.
 
 ![hash-bucket-size-distr](figs/hash-bucket-size-distr.png)
