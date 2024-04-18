@@ -2,7 +2,10 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::tuple::{DataChunk, Tuple};
 
-use super::{hash_table::sequential::SequentialHashTable, partition_hash, HashJoinBenchmark};
+use super::{
+    hash_table::sequential::SequentialHashTable, partition_hash, HashJoinBenchmark, SchedulingType,
+    STATIC_SCHEDULING,
+};
 
 #[derive(Clone)]
 pub struct Partition {
@@ -20,14 +23,12 @@ impl Partition {
         }
     }
 
-    fn consume_input_buffer(self) -> (boxcar::Vec<Tuple>, ProbePartition) {
-        (
-            self.inner_buffer,
-            ProbePartition {
-                outer_buffer: self.outer_buffer,
-                hash_table: self.hash_table,
-            },
-        )
+    /// Move the tuples from the inner relation buffer to the hash table.
+    fn populate_hash_table(&mut self) {
+        // Insert all tuples in the buffer into the hash table.
+        for tuple in std::mem::take(&mut self.inner_buffer).into_iter() {
+            self.hash_table.insert(tuple.clone());
+        }
     }
 }
 
@@ -36,14 +37,23 @@ pub struct ProbePartition {
     hash_table: SequentialHashTable<Vec<Tuple>>,
 }
 
-pub struct PartitionedDynamicHashJoin {
+impl From<Partition> for ProbePartition {
+    fn from(partition: Partition) -> Self {
+        Self {
+            outer_buffer: partition.outer_buffer,
+            hash_table: partition.hash_table,
+        }
+    }
+}
+
+pub struct PartitionedHashJoin<const S: SchedulingType> {
     inner: Option<Vec<DataChunk>>,
     outer: Option<Vec<DataChunk>>,
     bucket_num: usize,
     partition_num: usize,
 }
 
-impl PartitionedDynamicHashJoin {
+impl<const S: SchedulingType> PartitionedHashJoin<S> {
     pub fn new(
         bucket_num: usize,
         partition_num: usize,
@@ -59,7 +69,7 @@ impl PartitionedDynamicHashJoin {
     }
 }
 
-impl HashJoinBenchmark for PartitionedDynamicHashJoin {
+impl<const S: SchedulingType> HashJoinBenchmark for PartitionedHashJoin<S> {
     type PartitionOutput = Vec<Partition>;
     type BuildOutput = Vec<ProbePartition>;
 
@@ -68,43 +78,99 @@ impl HashJoinBenchmark for PartitionedDynamicHashJoin {
             vec![Partition::new(self.bucket_num / self.partition_num); self.partition_num];
         // Partition inner table.
         for chunk in self.inner.take().unwrap() {
-            chunk.into_par_iter().for_each(|tuple| {
-                let partition_idx = partition_hash(tuple.key()) as usize & (self.partition_num - 1);
-                partitions[partition_idx as usize].inner_buffer.push(tuple);
-            });
+            if S == STATIC_SCHEDULING {
+                let num_threads = rayon::current_num_threads();
+                let thread_chunk_size = chunk.len() / num_threads;
+                let thread_chunks = chunk.chunks(thread_chunk_size).collect::<Vec<_>>();
+                rayon::scope(|s| {
+                    for chunk in thread_chunks.into_iter() {
+                        s.spawn(|_| {
+                            chunk.iter().for_each(|tuple| {
+                                let partition_idx =
+                                    partition_hash(tuple.key()) as usize & (self.partition_num - 1);
+                                partitions[partition_idx].inner_buffer.push(tuple.clone());
+                            });
+                        });
+                    }
+                });
+            } else {
+                chunk.into_par_iter().for_each(|tuple| {
+                    let partition_idx =
+                        partition_hash(tuple.key()) as usize & (self.partition_num - 1);
+                    partitions[partition_idx as usize].inner_buffer.push(tuple);
+                });
+            }
         }
         // Partition outer table.
         for chunk in self.outer.take().unwrap() {
-            chunk.into_par_iter().for_each(|tuple| {
-                let partition_idx = partition_hash(tuple.key()) as usize & (self.partition_num - 1);
-                partitions[partition_idx as usize].outer_buffer.push(tuple);
-            });
+            if S == STATIC_SCHEDULING {
+                let num_threads = rayon::current_num_threads();
+                let thread_chunk_size = chunk.len() / num_threads;
+                let thread_chunks = chunk.chunks(thread_chunk_size).collect::<Vec<_>>();
+                rayon::scope(|s| {
+                    for chunk in thread_chunks.into_iter() {
+                        s.spawn(|_| {
+                            chunk.iter().for_each(|tuple| {
+                                let partition_idx =
+                                    partition_hash(tuple.key()) as usize & (self.partition_num - 1);
+                                partitions[partition_idx].outer_buffer.push(tuple.clone());
+                            });
+                        });
+                    }
+                });
+            } else {
+                chunk.into_par_iter().for_each(|tuple| {
+                    let partition_idx =
+                        partition_hash(tuple.key()) as usize & (self.partition_num - 1);
+                    partitions[partition_idx as usize].outer_buffer.push(tuple);
+                });
+            }
         }
         partitions
     }
 
     fn build(&mut self, partitions: Self::PartitionOutput) -> Self::BuildOutput {
+        // Static scheduling is hard to implement because Rust does not allow multiple
+        // threads to modify disjoint parts of the same vector. But the build phase is
+        // very cheap, and inner relation is uniform, so the scheduling method should
+        // not matter.
         partitions
             .into_par_iter()
-            .map(|partition| {
-                let (inner_buffer, mut probe_partition) = partition.consume_input_buffer();
-                // Insert all tuples in the buffer into the hash table.
-                for tuple in inner_buffer.into_iter() {
-                    probe_partition.hash_table.insert(tuple);
-                }
-                probe_partition
+            .map(|mut p| {
+                p.populate_hash_table();
+                p.into()
             })
             .collect()
     }
 
     fn probe(&mut self, partitions: Self::BuildOutput) {
-        partitions.into_par_iter().for_each(|partition| {
-            for tuple in partition.outer_buffer.into_iter() {
-                partition
-                    .hash_table
-                    .get_matching_tuples(tuple.key())
-                    .inspect(Self::produce_tuple);
-            }
-        });
+        if S == STATIC_SCHEDULING {
+            let num_threads = rayon::current_num_threads();
+            let thread_partition_size = partitions.len() / num_threads;
+            let thread_partitions = partitions.chunks(thread_partition_size).collect::<Vec<_>>();
+            rayon::scope(|s| {
+                for partitions in thread_partitions.into_iter() {
+                    s.spawn(|_| {
+                        partitions.iter().for_each(|partition| {
+                            for (_, tuple) in partition.outer_buffer.iter() {
+                                partition
+                                    .hash_table
+                                    .get_matching_tuples(tuple.key())
+                                    .inspect(Self::produce_tuple);
+                            }
+                        });
+                    });
+                }
+            });
+        } else {
+            partitions.into_par_iter().for_each(|partition| {
+                for tuple in partition.outer_buffer.into_iter() {
+                    partition
+                        .hash_table
+                        .get_matching_tuples(tuple.key())
+                        .inspect(Self::produce_tuple);
+                }
+            });
+        }
     }
 }
