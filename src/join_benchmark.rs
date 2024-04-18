@@ -1,11 +1,14 @@
 mod hash_bucket;
 mod hash_table;
+pub mod partitioned;
 pub mod sequential;
 pub mod shared;
 
-use crate::tuple::{DataChunk, Key, Tuple};
+use crate::tuple::{Key, Tuple};
 
-pub type NoOutput = ();
+pub type SchedulingType = bool;
+pub const STATIC_SCHEDULING: SchedulingType = true;
+pub const DYNAMIC_SCHEDULING: SchedulingType = false;
 
 fn time_phase<T>(name: &str, f: impl FnOnce() -> T) -> T {
     let start = std::time::Instant::now();
@@ -15,18 +18,20 @@ fn time_phase<T>(name: &str, f: impl FnOnce() -> T) -> T {
     ret
 }
 
+pub type NoOutput = ();
+
 pub trait HashJoinBenchmark {
     type PartitionOutput;
     type BuildOutput;
 
-    fn partition(&self, inner: Vec<DataChunk>) -> Self::PartitionOutput;
-    fn build(&self, partition_output: Self::PartitionOutput) -> Self::BuildOutput;
-    fn probe(&self, build_output: Self::BuildOutput, outer: Vec<DataChunk>);
+    fn partition(&mut self) -> Self::PartitionOutput;
+    fn build(&mut self, partition_output: Self::PartitionOutput) -> Self::BuildOutput;
+    fn probe(&mut self, build_output: Self::BuildOutput);
 
-    fn run(&self, inner: Vec<DataChunk>, outer: Vec<DataChunk>) {
-        let partition_output = time_phase("partition", move || self.partition(inner));
-        let build_output = time_phase("build", move || self.build(partition_output));
-        time_phase("probe", || self.probe(build_output, outer));
+    fn run(&mut self) {
+        let partition_output = time_phase("partition", || self.partition());
+        let build_output = time_phase("build", || self.build(partition_output));
+        time_phase("probe", || self.probe(build_output));
     }
 
     /// Clone the tuple to simulate outputting it.
