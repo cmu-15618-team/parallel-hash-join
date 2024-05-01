@@ -26,4 +26,4 @@ def analyze_data(filepath):
     plt.show()
 
 
-analyze_data("../bucket_sizes.csv")
+analyze_data("../0.1.csv")

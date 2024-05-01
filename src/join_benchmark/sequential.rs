@@ -25,7 +25,7 @@ impl SequentialHashJoin {
 /// Helper functions
 impl SequentialHashJoin {
     pub fn export_bucket_sizes(&self) -> Result<(), Box<dyn Error>> {
-        let file_path = "bucket_sizes.csv";
+        let file_path = "hs.csv";
         let mut wtr = Writer::from_path(file_path)?;
 
         for bucket in self.hash_table.buckets.iter() {
@@ -34,6 +34,7 @@ impl SequentialHashJoin {
         }
 
         wtr.flush()?;
+        println!("Bucket sizes exported to {}", file_path);
 
         Ok(())
     }
@@ -50,6 +51,8 @@ impl HashJoinBenchmark for SequentialHashJoin {
         }
 
         self.export_bucket_sizes().unwrap();
+        // terminate the program after exporting the bucket sizes
+        std::process::exit(0);
     }
 
     fn probe(&mut self) {
