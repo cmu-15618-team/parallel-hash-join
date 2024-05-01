@@ -24,7 +24,8 @@ struct Args {
     batch_size: usize,
 
     /// Number of partitions. Default value calculated from GHC L3 cache size of 10MB.
-    #[arg(short, long, default_value_t = 32)]
+    /// Best partition number: 4096
+    #[arg(short, long, default_value_t = 4096)]
     partition_num: usize,
 
     /// Total number of buckets in the hash table(s)
