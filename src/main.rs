@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use clap::Parser;
 use parallel_hash_join::{
     join_benchmark::{
@@ -34,6 +35,12 @@ struct Args {
     /// [u: uniform, l: low skew, h: high skew], [q: sequential, hd: shared dynamic, hs: shared static]
     #[arg(short, long, default_value = "all")]
     mode: String,
+
+    /// Number of threads to use
+    /// Must be a power of 2, and a multiple of batch size and partition number
+    /// Default = 8, if set to 0, it will use the number of logical cores
+    #[arg(short, long, default_value_t = 8)]
+    threads: usize,
 }
 
 fn main() {
@@ -45,8 +52,13 @@ fn main() {
         args.batch_size as u64,
     );
 
-    let parallelism = std::thread::available_parallelism().unwrap();
-    println!("Available parallelism: {}", parallelism);
+    // let parallelism = std::thread::available_parallelism().unwrap();
+    let parallelism = if args.threads == 0 {
+        std::thread::available_parallelism().unwrap()
+    } else {
+        NonZeroUsize::try_from(args.threads).unwrap()
+    };
+    println!(" ==> Thread number: {}", parallelism.get());
 
     // Batch size must be a multiple of the number of threads.
     assert!(parallelism.is_power_of_two());
