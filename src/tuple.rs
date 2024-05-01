@@ -1,6 +1,6 @@
 use rand::{distributions::Distribution, Rng};
 
-const LOW_SKEW_ZIPF_ALPHA: f64 = 1.05;
+const LOW_SKEW_ZIPF_ALPHA: f64 = 2.0;
 const HIGH_SKEW_ZIPF_ALPHA: f64 = 1.25;
 
 pub type Key = u64;
@@ -58,6 +58,7 @@ impl TupleGenerator {
     }
 
     pub fn gen_low_skew(&self) -> (Vec<DataChunk>, Vec<DataChunk>) {
+        println!("Generating low skew data, skew alpha: {}", LOW_SKEW_ZIPF_ALPHA);
         let mut rng = rand::thread_rng();
         let zipf = zipf::ZipfDistribution::new(self.inner_tuple_num as usize, LOW_SKEW_ZIPF_ALPHA)
             .unwrap();

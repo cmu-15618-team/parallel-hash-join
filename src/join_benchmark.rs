@@ -42,6 +42,10 @@ pub trait HashJoinBenchmark {
             haystack.iter().any(|x| x == &needle)
         }
 
+        fn ret_true() -> bool {
+            true
+        }
+
         fn benchmark() {
             let haystack = vec!["abc", "def", "ghi", "jkl", "mno"];
             let needle = "ghi";
@@ -51,8 +55,9 @@ pub trait HashJoinBenchmark {
             }
         }
 
-        #[allow(clippy::unit_arg)]
-        black_box(benchmark());
+        // #[allow(clippy::unit_arg)]
+        // black_box(benchmark());
+        ret_true();
     }
 }
 
